@@ -7,7 +7,7 @@ Python >= 3.10, Git
 ## Setup du Projet
 
 Téléchargement initial du projet
-> git clone https://github.com/CryptoRobotFr/Backtest-Tools-V2.git  
+> git clone https://github.com/jackseg80/Backtest-Tools-V2.git 
 
 Placer ensuite le terminal à l'intérieur du dossier Backtest-Tools-V2  
 
