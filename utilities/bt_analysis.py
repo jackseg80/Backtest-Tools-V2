@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import datetime
 import numpy as np
+from tabulate import tabulate
 
 def get_metrics(df_trades, df_days):
     df_days_copy = df_days.copy()
@@ -313,6 +314,7 @@ def backtest_analysis(
     global_win_rate = total_good_trades / total_trades
     max_trades_drawdown = df_trades['drawdown_pct'].max()
     max_days_drawdown = df_days['drawdown_pct'].max()
+    mean_drawdown = df_days['drawdown_pct'].mean()
     final_wallet = df_days.iloc[-1]['wallet']
     buy_and_hold_pct = (df_days.iloc[-1]['price'] - df_days.iloc[0]['price']) / df_days.iloc[0]['price']
     buy_and_hold_wallet = initial_wallet + initial_wallet * buy_and_hold_pct
@@ -323,6 +325,7 @@ def backtest_analysis(
     calmar_ratio = (df_days["daily_return"].mean()*365) / max_days_drawdown
     mean_trades_duration = df_trades['trades_duration'].mean()
     mean_trades_per_days = total_trades/total_days
+    total_fees = df_trades['open_fee'].sum() + df_trades['close_fee'].sum()
     
     best_trade = df_trades[result_to_use].max()
     best_trade_date1 =  str(df_trades.loc[df_trades[result_to_use] == best_trade].iloc[0]['open_date'])
@@ -363,53 +366,78 @@ def backtest_analysis(
     max_short_exposition = df_days['short_exposition'].max()
     
     if general_info:
-        print(f"Period: [{df_days.iloc[0]['day']}] -> [{df_days.iloc[-1]['day']}]")
-        print(f"Initial wallet: {round(initial_wallet,2)} $")
-        
-        print("\n--- General Information ---")
-        print(f"Final wallet: {round(final_wallet,2)} $")
-        print(f"Performance: {round(vs_usd_pct*100,2)} %")
-        print(f"Sharpe Ratio: {round(sharpe_ratio,2)} | Sortino Ratio: {round(sortino_ratio,2)} | Calmar Ratio: {round(calmar_ratio,2)}")
-        print(f"Worst Drawdown T|D: -{round(max_trades_drawdown*100, 2)}% | -{round(max_days_drawdown*100, 2)}%")
-        print(f"Buy and hold performance: {round(buy_and_hold_pct*100,2)} %")
-        print(f"Performance vs buy and hold: {round(vs_hold_pct*100,2)} %")
-        print(f"Total trades on the period: {total_trades}")
-        print(f"Average Profit: {round(avg_profit*100, 2)} %")
-        print(f"Global Win rate: {round(global_win_rate*100, 2)} %")
-    
+        table_general = [["Période", "{} -> {}".format(*[d.strftime("%d.%m.%Y") for d in [df_days.iloc[0]["day"], df_days.iloc[-1]["day"]]])],
+        ["Portefeuille initial", "{:,.2f} $".format(initial_wallet)],
+        [],
+        ["Portefeuille final", "{:,.2f} $".format(final_wallet)],
+        ["Performance vs US dollar", "{:,.2f} %".format(vs_usd_pct*100)],
+        ["Pire Drawdown T|D", "-{} % | -{} %".format(round(max_trades_drawdown*100, 2), round(max_days_drawdown*100, 2))],
+        ["Moyenne journalière Drawdown", "-{} %".format(round(mean_drawdown*100, 2))],
+        ["Buy and hold performance", "{} %".format(round(buy_and_hold_pct*100,2))],
+        ["Performance vs buy and hold", "{:,.2f} %".format(vs_hold_pct*100)],
+        ["Nombre total de trades", "{}".format(total_trades)],
+        ["Sharpe | Sortino | Calmar Ratio", "{} | {} | {}".format(round(sharpe_ratio,2), round(sortino_ratio,2), round(calmar_ratio,2))],
+        ["Global Win rate", "{} %".format(round(global_win_rate*100, 2))],
+        ["Profit moyen", "{} %".format(round(avg_profit*100, 2))],
+        ["Total des frais", "{:,.2f} $".format(total_fees)],
+        ]
+
+        headers = ["Informations générales", ""]
+        print(tabulate(table_general, headers, tablefmt="fancy_outline"))
+
     if trades_info:
-        print("\n--- Trades Information ---")
-        print(f"Mean Trades per day: {round(mean_trades_per_days, 2)}")
-        print(f"Mean Trades Duration: {mean_trades_duration}")
-        print(f"Best trades: +{round(best_trade*100, 2)} % the {best_trade_date1} -> {best_trade_date2} ({best_trade_pair})")
-        print(f"Worst trades: {round(worst_trade*100, 2)} % the {worst_trade_date1} -> {worst_trade_date2} ({worst_trade_pair})")
+        table_trades = [["Moyenne trades par jour", "{}".format(round(mean_trades_per_days, 2))],
+        ["Moyenne temps trades", "{}".format(mean_trades_duration)],      
+        ["Meilleur trade","+{:.2f} % le {} -> {} ({})".format(best_trade*100, best_trade_date1, best_trade_date2, best_trade_pair)],
+        ["Pire trade", "{:.2f} % le {} -> {} ({})".format(worst_trade*100, worst_trade_date1, worst_trade_date2, worst_trade_pair)],
+        ]
         try:
-            print(f"Total Good trades on the period: {total_good_trades}")
-            print(f"Total Bad trades on the period: {total_bad_trades}")
-            print(f"Average Good Trades result: {round(avg_profit_good_trades*100, 2)} %")
-            print(f"Average Bad Trades result: {round(avg_profit_bad_trades*100, 2)} %")
-            print(f"Mean Good Trades Duration: {mean_good_trades_duration}")
-            print(f"Mean Bad Trades Duration: {mean_bad_trades_duration}")
-        except Exception as e: 
+            table_trades = table_trades + [["Total bons trades sur la période", "{}".format(total_good_trades)],
+            ["Total mauvais trades sur la période", "{}".format(total_bad_trades)],
+            ["Résultat moyen des bons trades", "{} %".format(round(avg_profit_good_trades*100, 2))],
+            ["Résultat moyen des mauvais trades", "{} %".format(round(avg_profit_bad_trades*100, 2))],
+            ["Durée moyenne des bons trades", "{}".format(mean_good_trades_duration)],
+            ["Durée moyenne des mauvais trades", "{}".format(mean_bad_trades_duration)],
+            ]
+        except Exception as e:
             pass
+        
+        headers = ["Trades", ""]
+        print(tabulate(table_trades, headers, tablefmt="fancy_outline"))
 
     if days_info:
-        print("\n--- Days Informations ---")
-        print(f"Total: {len(df_days)} days recorded")
-        print(f"Winning days: {win_days_number} days ({round(100*win_days_number/len(df_days), 2)}%)")
-        print(f"Neutral days: {neutral_days_number} days ({round(100*neutral_days_number/len(df_days), 2)}%)")
-        print(f"Loosing days: {loose_days_number} days ({round(100*loose_days_number/len(df_days), 2)}%)")
-        print(f"Longest winning streak: {round(best_streak_number)} days ({best_streak_date})")
-        print(f"Longest loosing streak: {round(-worst_streak_number)} days ({worst_streak_date})")
-        print(f"Best day: {best_day_date} (+{round(best_day_return*100, 2)}%)")
-        print(f"Worst day: {worst_day_date} ({round(worst_day_return*100, 2)}%)")
+        table_days = [
+        ["Total", "{} jours enregistrés".format(len(df_days))],
+        ["Jours gagnants", "{} jours ({} %)".format(win_days_number, round(100*win_days_number/len(df_days), 2))],
+        ["Jours neutres", "{} jours ({} %)".format(neutral_days_number, round(100*neutral_days_number/len(df_days), 2))],
+        ["Jours perdants", "{} jours ({} %)".format(loose_days_number, round(100*loose_days_number/len(df_days), 2))],
+        ["Plus longue série de victoires", "{} jours ({})".format(round(best_streak_number), best_streak_date)],
+        ["Plus longue série de défaites", "{} jours ({})".format(round(-worst_streak_number), worst_streak_date)],
+        ["Meilleur jour", "{} (+{} %)".format(best_day_date, round(best_day_return*100, 2))],
+        ["Pire jour", "{} ({} %)".format(worst_day_date, round(worst_day_return*100, 2))],
+        ]
+        
+        headers = ["Jours", ""]
+        print(tabulate(table_days, headers, tablefmt="fancy_outline"))
 
     if exposition_info:
-        print("\n--- Exposition Informations ---")
-        print(f"Mean Exposition: {round(mean_exposition, 2)}")
-        print(f"Max Exposition: {round(max_exposition, 2)}")
-        print(f"Max Long Exposition: {round(max_long_exposition, 2)}")
-        print(f"Max Short Exposition: {round(max_short_exposition, 2)}")
+        table_exposition = [
+        ["Exposition moyenne", "{}".format(round(mean_exposition, 2))],
+        ["Exposition max", "{}".format(round(max_exposition, 2))],
+        ["Exposition max Long", "{}".format(round(max_long_exposition, 2))],
+        ["Exposition max Short", "{}".format(round(max_short_exposition, 2))],
+        ]
+        try:
+            table_exposition = table_exposition + [
+                ["VAR moyenne", "{} %".format(round(mean_risk, 2))],
+                ["VAR Max", "{} %".format(round(max_risk, 2))],
+                ["VAR Min", "{} %".format(round(min_risk, 2))],
+            ]
+        except Exception as e:
+            pass
+        
+        headers = ["Exposition", ""]
+        print(tabulate(table_exposition, headers, tablefmt="fancy_outline"))
         
     if long_short_info:
         long_trades = df_trades.loc[df_trades['position'] == "LONG"]
@@ -433,17 +461,19 @@ def backtest_analysis(
             short_win_rate = total_good_short_trades / total_short_trades
             long_average_profit = long_trades[result_to_use].mean()
             short_average_profit = short_trades[result_to_use].mean()
-            print("\n--- " + "LONG informations" + " ---")
-            print(f"Total LONG trades on the period: {total_long_trades}")
+            print("\n" + "-"*14 + "LONG informations" + "-" *14)
+            print(f"Total LONG trades sur la periode: {total_long_trades}")
             print(f"LONG Win rate: {round(long_win_rate*100, 2)} %")
-            print(f"Average LONG Profit: {round(long_average_profit*100, 2)} %")
-            print("\n--- " + "SHORT informations" + " ---")
-            print(f"Total SHORT trades on the period: {total_short_trades}")
+            print(f"Bénéfice moyen LONG: {round(long_average_profit*100, 2)} %")
+            print("-" * 45)
+            print("\n" + "-" *13 + "SHORT informations" + "-" *14)
+            print(f"Total SHORT trades sur la période: {total_short_trades}")
             print(f"SHORT Win rate: {round(short_win_rate*100, 2)} %")
-            print(f"Average SHORT Profit: {round(short_average_profit*100, 2)} %")
+            print(f"Bénéfice moyen SHORT: {round(short_average_profit*100, 2)} %")
+            print("-" * 45)
     
     if entry_exit_info:
-        print("\n" + "-" * 16 + " Entries " + "-" * 16)
+        print("\n" + "-" * 16 + " Entrées " + "-" * 16)
         total_entries = len(df_trades)
         open_dict = df_trades.groupby("position")["open_reason"].value_counts().to_dict()
         for entry in open_dict:
@@ -456,7 +486,7 @@ def backtest_analysis(
                     + "%)",
                 )
             )
-        print("-" * 17 + " Exits " + "-" * 17)
+        print("-" * 16 + " Sorties " + "-" * 16)
         total_exits = len(df_trades)
         close_dict = df_trades.groupby("position")["close_reason"].value_counts().to_dict()
         for entry in close_dict:
@@ -473,11 +503,7 @@ def backtest_analysis(
 
     if pair_info:
         print("\n--- Pair Result ---")
-        print('-' * 95)
-        print('{:<6s}{:>10s}{:>15s}{:>15s}{:>15s}{:>15s}{:>15s}'.format(
-                    "Trades","Pair","Sum-result","Mean-trade","Worst-trade","Best-trade","Win-rate"
-                    ))
-        print('-' * 95)
+        table_pair = []
         for pair in df_trades["pair"].unique():
             df_pair = df_trades.loc[df_trades["pair"] == pair]
             pair_total_trades = len(df_pair)
@@ -487,8 +513,11 @@ def backtest_analysis(
             pair_win_rate = str(round((pair_good_trades / pair_total_trades) * 100, 2))+' %'
             pair_sum_result = str(round(df_pair["trade_result_pct"].sum() * 100, 2))+' %'
             pair_avg_result = str(round(df_pair["trade_result_pct"].mean() * 100, 2))+' %'
-            print('{:<6d}{:>10s}{:>15s}{:>15s}{:>15s}{:>15s}{:>15s}'.format(
-                                pair_total_trades,pair,pair_sum_result,pair_avg_result,pair_worst_trade,pair_best_trade,pair_win_rate
-                            ))
+            table_pair.append([
+                pair_total_trades, pair, pair_sum_result, pair_avg_result, pair_worst_trade, pair_best_trade, pair_win_rate
+            ])
+
+        headers = ["Trades","Pair","Sum-result","Mean-trade","Worst-trade","Best-trade","Win-rate"]
+        print(tabulate(table_pair, headers, tablefmt="fancy_outline"))
 
     return df_trades, df_days
