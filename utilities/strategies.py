@@ -1210,14 +1210,15 @@ class MultiEnvelope():
         
         return self.df_list[self.oldest_pair]
         
-    def run_backtest(self, initial_wallet=1000, leverage=1):
+    def run_backtest(self, initial_wallet=1000, leverage=1, maker_fee=0.0002, taker_fee=0.0006, stop_loss = 1):
         params = self.params
         df_ini = self.df_list[self.oldest_pair][:]
         wallet = initial_wallet
         long_exposition = 0
         short_exposition = 0
-        maker_fee = 0.0002
-        taker_fee = 0.0006
+        maker_fee = maker_fee
+        taker_fee = taker_fee
+        stop_loss_pourcent = stop_loss
         trades = []
         days = []
         current_day = 0
@@ -1263,7 +1264,13 @@ class MultiEnvelope():
                 long_position_to_close = set({k: v for k,v in current_positions.items() if v['side'] == "LONG"}).intersection(set(close_long_row))
                 for pair in long_position_to_close:
                     actual_row = self.df_list[pair].loc[index]
-                    close_price = actual_row['ma_base']
+
+                    # Stop Loss
+                    if actual_row['low'] <= current_positions[pair]['stop_loss']:
+                        close_price = current_positions[pair]['stop_loss']
+                    else:
+                        close_price = actual_row['ma_base']
+
                     trade_result = (close_price - current_positions[pair]['price']) / current_positions[pair]['price']
                     close_size = current_positions[pair]['size'] + current_positions[pair]['size'] * trade_result
                     fee = close_size * maker_fee
@@ -1274,7 +1281,7 @@ class MultiEnvelope():
                         "close_date": index,
                         "position": current_positions[pair]['side'],
                         "open_reason": current_positions[pair]['reason'],
-                        "close_reason": "Market",
+                        "close_reason": "Stop Loss" if actual_row['low'] <= current_positions[pair]['stop_loss'] else "Market",
                         "open_price": current_positions[pair]['price'],
                         "close_price": close_price,
                         "open_fee": current_positions[pair]['fee'],
@@ -1290,7 +1297,13 @@ class MultiEnvelope():
                 short_position_to_close = set({k: v for k,v in current_positions.items() if v['side'] == "SHORT"}).intersection(set(close_short_row))
                 for pair in short_position_to_close:
                     actual_row = self.df_list[pair].loc[index]
-                    close_price = actual_row['ma_base']
+
+                    # Stop Loss
+                    if actual_row['high'] >= current_positions[pair]['stop_loss']:
+                        close_price = current_positions[pair]['stop_loss']
+                    else:
+                        close_price = actual_row['ma_base']
+
                     trade_result = (current_positions[pair]['price'] - close_price) / current_positions[pair]['price']
                     close_size = current_positions[pair]['size'] + current_positions[pair]['size'] * trade_result
                     fee = close_size * taker_fee
@@ -1301,7 +1314,7 @@ class MultiEnvelope():
                         "close_date": index,
                         "position": current_positions[pair]['side'],
                         "open_reason": current_positions[pair]['reason'],
-                        "close_reason": "Market",
+                        "close_reason": "Stop Loss" if actual_row['high'] >= current_positions[pair]['stop_loss'] else "Market",
                         "open_price": current_positions[pair]['price'],
                         "close_price": close_price,
                         "open_fee": current_positions[pair]['fee'],
@@ -1332,12 +1345,14 @@ class MultiEnvelope():
                         fee = pos_size * maker_fee
                         pos_size -= fee
                         wallet -= fee
+                        stop_loss = open_price - stop_loss_pourcent * open_price
                         if actual_position:
                             actual_position["price"] = (actual_position["size"] * actual_position["price"] + open_price * pos_size) / (actual_position["size"] + pos_size)
                             actual_position["size"] = actual_position["size"] + pos_size
                             actual_position["fee"] = actual_position["fee"] + fee
                             actual_position["envelope"] = i
                             actual_position["reason"] = f"Limit Envelop {i}"
+                            actual_position["stop_loss"] = stop_loss
                         else:
                             current_positions[pair] = {
                                 "size": pos_size,
@@ -1347,6 +1362,7 @@ class MultiEnvelope():
                                 "reason": f"Limit Envelop {i}",
                                 "side": "LONG",
                                 "envelope": i,
+                                "stop_loss": stop_loss,
                             }
                         long_exposition += 0
             # -- Open SHORT market --
@@ -1367,12 +1383,14 @@ class MultiEnvelope():
                         fee = pos_size * maker_fee
                         pos_size -= fee
                         wallet -= fee
+                        stop_loss = open_price + stop_loss_pourcent * open_price
                         if actual_position:
                             actual_position["price"] = (actual_position["size"] * actual_position["price"] + open_price * pos_size) / (actual_position["size"] + pos_size)
                             actual_position["size"] = actual_position["size"] + pos_size
                             actual_position["fee"] = actual_position["fee"] + fee
                             actual_position["envelope"] = i
                             actual_position["reason"] = f"Limit Envelop {i}"
+                            actual_position["stop_loss"] = stop_loss
                         else:
                             current_positions[pair] = {
                                 "size": pos_size,
@@ -1382,6 +1400,7 @@ class MultiEnvelope():
                                 "reason": f"Limit Envelop {i}",
                                 "side": "SHORT",
                                 "envelope": i,
+                                "stop_loss": stop_loss,
                             }
                         short_exposition += 0             
                         
