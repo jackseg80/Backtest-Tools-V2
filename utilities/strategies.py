@@ -1210,14 +1210,14 @@ class MultiEnvelope():
         
         return self.df_list[self.oldest_pair]
         
-    def run_backtest(self, initial_wallet=1000, leverage=1):
+    def run_backtest(self, initial_wallet=1000, leverage=1, maker_fee=0.0002, taker_fee=0.0006):
         params = self.params
         df_ini = self.df_list[self.oldest_pair][:]
         wallet = initial_wallet
         long_exposition = 0
         short_exposition = 0
-        maker_fee = 0.0002
-        taker_fee = 0.0006
+        maker_fee = maker_fee
+        taker_fee = taker_fee
         trades = []
         days = []
         current_day = 0
