@@ -388,8 +388,8 @@ def backtest_analysis(
     if trades_info:
         table_trades = [["Moyenne trades par jour", "{}".format(round(mean_trades_per_days, 2))],
         ["Moyenne temps trades", "{}".format(mean_trades_duration)],      
-        ["Meilleur trade","+{:.2f} % le {} -> {} ({})".format(best_trade*100, best_trade_date1, best_trade_date2, best_trade_pair)],
-        ["Pire trade", "{:.2f} % le {} -> {} ({})".format(worst_trade*100, worst_trade_date1, worst_trade_date2, worst_trade_pair)],
+        ["\033[92mMeilleur trade\033[0m","\033[92m+{:.2f} % le {} -> {}\033[0m".format(best_trade*100, best_trade_date1, best_trade_date2, best_trade_pair)],
+        ["\033[91mPire trade\033[0m", "\033[91m{:.2f} % le {} -> {}\033[0m".format(worst_trade*100, worst_trade_date1, worst_trade_date2, worst_trade_pair)],
         ]
         try:
             table_trades = table_trades + [["Total bons trades sur la période", "{}".format(total_good_trades)],
