@@ -1210,7 +1210,7 @@ class MultiEnvelope():
         
         return self.df_list[self.oldest_pair]
         
-    def run_backtest(self, initial_wallet=1000, leverage=1, maker_fee=0.0002, taker_fee=0.0006, stop_loss = 1):
+    def run_backtest(self, initial_wallet=1000, leverage=1, maker_fee=0.0002, taker_fee=0.0006, stop_loss = 1, reinvest=True):
         params = self.params
         df_ini = self.df_list[self.oldest_pair][:]
         wallet = initial_wallet
@@ -1219,6 +1219,7 @@ class MultiEnvelope():
         maker_fee = maker_fee
         taker_fee = taker_fee
         stop_loss_pourcent = stop_loss
+        reinvest = reinvest
         trades = []
         days = []
         current_day = 0
@@ -1266,7 +1267,7 @@ class MultiEnvelope():
                     actual_row = self.df_list[pair].loc[index]
 
                     # Stop Loss
-                    if actual_row['low'] <= current_positions[pair]['stop_loss']:
+                    if 'stop_loss' in current_positions[pair] and actual_row['low'] <= current_positions[pair]['stop_loss']:
                         close_price = current_positions[pair]['stop_loss']
                     else:
                         close_price = actual_row['ma_base']
@@ -1299,7 +1300,7 @@ class MultiEnvelope():
                     actual_row = self.df_list[pair].loc[index]
 
                     # Stop Loss
-                    if actual_row['high'] >= current_positions[pair]['stop_loss']:
+                    if 'stop_loss' in current_positions[pair] and actual_row['low'] >= current_positions[pair]['stop_loss']:
                         close_price = current_positions[pair]['stop_loss']
                     else:
                         close_price = actual_row['ma_base']
@@ -1341,10 +1342,15 @@ class MultiEnvelope():
                         continue
                     if actual_row[f"open_long_{i}"]:
                         open_price = actual_row[f'ma_low_{i}']
-                        pos_size = (params[pair]["size"] * wallet * leverage) / len(params[pair]["envelopes"])
+                        # Réinvéstissement total du wallet ou toujours la même somme
+                        if reinvest:
+                            pos_size = (params[pair]["size"] * wallet * leverage) / len(params[pair]["envelopes"])
+                        else:
+                            pos_size = min(initial_wallet, (params[pair]["size"] * wallet * leverage) / len(params[pair]["envelopes"]))
                         fee = pos_size * maker_fee
                         pos_size -= fee
                         wallet -= fee
+                        # Ajout d'un SL
                         stop_loss = open_price - stop_loss_pourcent * open_price
                         if actual_position:
                             actual_position["price"] = (actual_position["size"] * actual_position["price"] + open_price * pos_size) / (actual_position["size"] + pos_size)
@@ -1379,7 +1385,10 @@ class MultiEnvelope():
                         continue
                     if actual_row[f"open_short_{i}"]:
                         open_price = actual_row[f'ma_high_{i}']
-                        pos_size = (params[pair]["size"] * wallet * leverage) / len(params[pair]["envelopes"])
+                        if reinvest:
+                            pos_size = (params[pair]["size"] * wallet * leverage) / len(params[pair]["envelopes"])
+                        else:
+                            pos_size = min(initial_wallet, (params[pair]["size"] * wallet * leverage) / len(params[pair]["envelopes"]))
                         fee = pos_size * maker_fee
                         pos_size -= fee
                         wallet -= fee
