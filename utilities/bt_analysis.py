@@ -245,7 +245,8 @@ def simple_backtest_analysis(
 
 def backtest_analysis(
     trades, 
-    days, 
+    days,
+    leverage, 
     general_info=True, 
     trades_info=False,
     days_info=False,
@@ -367,7 +368,7 @@ def backtest_analysis(
     
     if general_info:
         table_general = [["Période", "{} -> {}".format(*[d.strftime("%d.%m.%Y") for d in [df_days.iloc[0]["day"], df_days.iloc[-1]["day"]]])],
-        ["Portefeuille initial", "{:,.2f} $".format(initial_wallet)],
+        ["Portefeuille initial", "{:,.2f} $  (levier x{})".format(initial_wallet, leverage)],
         [],
         ["Portefeuille final", "{:,.2f} $".format(final_wallet)],
         ["Performance vs US dollar", "{:,.2f} %".format(vs_usd_pct*100)],

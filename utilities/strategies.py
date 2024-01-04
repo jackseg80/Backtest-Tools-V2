@@ -1206,8 +1206,7 @@ class MultiEnvelope():
         self.close_long_obj = df_close_long['combined']
         self.open_short_obj = df_open_short['combined']
         self.close_short_obj = df_close_short['combined']
-        
-        
+         
         return self.df_list[self.oldest_pair]
         
     def run_backtest(self, initial_wallet=1000, leverage=1, maker_fee=0.0002, taker_fee=0.0006, stop_loss = 1, reinvest=True):
@@ -1342,16 +1341,25 @@ class MultiEnvelope():
                         continue
                     if actual_row[f"open_long_{i}"]:
                         open_price = actual_row[f'ma_low_{i}']
+                        
                         # Réinvéstissement total du wallet ou toujours la même somme
                         if reinvest:
                             pos_size = (params[pair]["size"] * wallet * leverage) / len(params[pair]["envelopes"])
                         else:
                             pos_size = min(initial_wallet, (params[pair]["size"] * wallet * leverage) / len(params[pair]["envelopes"]))
+
                         fee = pos_size * maker_fee
                         pos_size -= fee
                         wallet -= fee
+
                         # Ajout d'un SL
+                        # if i == 4:
+                        #     stop_loss = open_price - stop_loss_pourcent * open_price
+                        # else:
+                        #     stop_loss = 1
+                                     
                         stop_loss = open_price - stop_loss_pourcent * open_price
+                        
                         if actual_position:
                             actual_position["price"] = (actual_position["size"] * actual_position["price"] + open_price * pos_size) / (actual_position["size"] + pos_size)
                             actual_position["size"] = actual_position["size"] + pos_size
@@ -1370,7 +1378,7 @@ class MultiEnvelope():
                                 "envelope": i,
                                 "stop_loss": stop_loss,
                             }
-                        long_exposition += 0
+
             # -- Open SHORT market --
             open_short_row = self.open_short_obj.loc[index]
             for pair in open_short_row:
@@ -1392,7 +1400,13 @@ class MultiEnvelope():
                         fee = pos_size * maker_fee
                         pos_size -= fee
                         wallet -= fee
+                        # if i == 4:
+                        #     stop_loss = open_price + stop_loss_pourcent * open_price
+                        # else:
+                        #     stop_loss = 1
+
                         stop_loss = open_price + stop_loss_pourcent * open_price
+                            
                         if actual_position:
                             actual_position["price"] = (actual_position["size"] * actual_position["price"] + open_price * pos_size) / (actual_position["size"] + pos_size)
                             actual_position["size"] = actual_position["size"] + pos_size
@@ -1410,8 +1424,7 @@ class MultiEnvelope():
                                 "side": "SHORT",
                                 "envelope": i,
                                 "stop_loss": stop_loss,
-                            }
-                        short_exposition += 0             
+                            }          
                         
         df_days = pd.DataFrame(days)
         df_days['day'] = pd.to_datetime(df_days['day'])
