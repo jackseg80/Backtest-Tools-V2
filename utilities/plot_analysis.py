@@ -54,44 +54,45 @@ def plot_bar_by_month(df_days):
             current_month = 1
             current_year += 1
 
-def plot_equity_vs_asset(df_days, log=False):
+def plot_equity_vs_asset(df_days, pair, log=False):
     days = df_days.copy()
+    coin = pair.split("/")[0]
     # print("-- Plotting equity vs asset and drawdown --")
     fig, ax_left = plt.subplots(figsize=(15, 20), nrows=4, ncols=1)
 
-    ax_left[0].title.set_text("Strategy equity curve")
+    ax_left[0].title.set_text("Courbe de capital stratégique")
     ax_left[0].plot(days['wallet'], color='royalblue', lw=1)
     if log:
         ax_left[0].set_yscale('log')
     ax_left[0].fill_between(days['wallet'].index, days['wallet'], alpha=0.2, color='royalblue')
     ax_left[0].axhline(y=days.iloc[0]['wallet'], color='black', alpha=0.3)
-    ax_left[0].legend(['Wallet evolution (equity)'], loc ="upper left")
+    ax_left[0].legend(['Evolution du portefeuille (capital)'], loc ="upper left")
 
-    ax_left[1].title.set_text("Base currency evolution")
+    ax_left[1].title.set_text("Cours "+ coin)
     ax_left[1].plot(days['price'], color='sandybrown', lw=1)
     if log:
         ax_left[1].set_yscale('log')
     ax_left[1].fill_between(days['price'].index, days['price'], alpha=0.2, color='sandybrown')
     ax_left[1].axhline(y=days.iloc[0]['price'], color='black', alpha=0.3)
-    ax_left[1].legend(['Asset evolution'], loc ="upper left")
+    ax_left[1].legend(["Evolution de l'actif"], loc ="upper left")
 
-    ax_left[2].title.set_text("Drawdown curve")
+    ax_left[2].title.set_text("Courbe du drawdown")
     ax_left[2].plot(-days['drawdown_pct']*100, color='indianred', lw=1)
     ax_left[2].fill_between(days['drawdown_pct'].index, -days['drawdown_pct']*100, alpha=0.2, color='indianred')
     ax_left[2].axhline(y=0, color='black', alpha=0.3)
-    ax_left[2].legend(['Drawdown in %'], loc ="lower left")
+    ax_left[2].legend(['Drawdown en %'], loc ="lower left")
 
     ax_right = ax_left[3].twinx()
     if log:
         ax_left[3].set_yscale('log')
         ax_right.set_yscale('log')
 
-    ax_left[3].title.set_text("Wallet VS Asset (not on the same scale)")
+    ax_left[3].title.set_text("Portefeuille VS " + coin + " (pas à la même échelle)")
     ax_left[3].set_yticks([])
     ax_right.set_yticks([])
     ax_left[3].plot(days['wallet'], color='royalblue', lw=1)
     ax_right.plot(days['price'], color='sandybrown', lw=1)
-    ax_left[3].legend(['Wallet evolution (equity)'], loc ="lower right")
+    ax_left[3].legend(['Evolution du portefeuille (capital)'], loc ="lower right")
     ax_right.legend(['Asset evolution'], loc ="upper left")
 
     plt.show()
