@@ -130,6 +130,7 @@ def plot_exposition_over_time(df_days):
 def plot_futur_simulations(df_trades, trades_multiplier, trades_to_forecast, number_of_simulations, true_trades_to_show, show_all_simulations=False):
     sns.set_style("darkgrid")
     sns.set(rc={'figure.figsize':(17,8)})
+    plt.title("Simulation de " + str(number_of_simulations) + " scénarios différents")
     inital_wallet = df_trades.iloc[-1]['wallet']
     number_of_trade_last_year = len(df_trades[df_trades["close_date"]>datetime.datetime.now()-datetime.timedelta(days=365)])
     mean_trades_per_day = number_of_trade_last_year/365
@@ -167,6 +168,7 @@ def plot_futur_simulations(df_trades, trades_multiplier, trades_to_forecast, num
 def plot_train_test_simulation(df_trades, train_test_date, trades_multiplier, number_of_simulations):
     sns.set_style("darkgrid")
     sns.set(rc={'figure.figsize':(17,8)})
+    plt.title("Courbe de surapprentissage sur " + str(number_of_simulations) + " scénarios différents")
     df_train = df_trades.loc[df_trades["close_date"]<train_test_date]
     df_test = df_trades.loc[df_trades["close_date"]>=train_test_date]
     trades_to_forecast = len(df_test)
